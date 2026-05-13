@@ -52,7 +52,7 @@
       finally { dom.testBtn.disabled = false; dom.testBtn.textContent = 'Проверить'; }
     };
 
-    // 📥 Загрузка из БД с нормализацией для мобильных
+    // 📥 Загрузка из БД с жесткой нормализацией дат и типов
     dom.pullBtn.onclick = async () => {
       const cfg = getConfig();
       if (!cfg.host || !cfg.name) return showStatus('Заполните конфигурацию БД', 'error');
@@ -63,34 +63,29 @@
         const result = await res.json();
         if (result.success) {
           const data = result.data;
-          // 🔧 Нормализация типов перед записью в localStorage
+          
+          // 🔧 Нормализация доходов
           if (data.budget_incomes) {
-            data.budget_incomes = data.budget_incomes.map(i => ({
-              ...i,
-              type: String(i.type || '').trim().toLowerCase(),
-              isArchived: Boolean(Number(i.isArchived) || 0),
-              amount: Number(i.amount) || 0
-            }));
+            data.budget_incomes = data.budget_incomes.map(i => {
+              let d = String(i.date || '').trim();
+              if (d.includes('T')) d = d.split('T')[0];
+              return { ...i, date: d, type: String(i.type || '').trim().toLowerCase(), isArchived: Boolean(Number(i.isArchived) || 0), amount: Number(i.amount) || 0 };
+            });
           }
+          // 🔧 Нормализация расходов
           if (data.budget_expenses) {
-            data.budget_expenses = data.budget_expenses.map(e => ({
-              ...e,
-              type: String(e.type || '').trim().toLowerCase(),
-              isArchived: Boolean(Number(e.isArchived) || 0),
-              isAuto: Boolean(Number(e.isAuto) || 0),
-              isRecurring: Boolean(Number(e.recurring) || 0),
-              amount: Number(e.amount) || 0
-            }));
+            data.budget_expenses = data.budget_expenses.map(e => {
+              let d = String(e.date || '').trim();
+              if (d.includes('T')) d = d.split('T')[0];
+              return { ...e, date: d, type: String(e.type || '').trim().toLowerCase(), isArchived: Boolean(Number(e.isArchived) || 0), isAuto: Boolean(Number(e.isAuto) || 0), isRecurring: Boolean(Number(e.recurring) || 0), amount: Number(e.amount) || 0 };
+            });
           }
 
-          // Запись
           for (const key in data) {
             localStorage.setItem(key, JSON.stringify(data[key]));
           }
-          showStatus('Данные загружены из БД. Перезагрузка...', 'success');
-          
-          // 🔧 Гарантированное обновление на мобильных
-          setTimeout(() => location.reload(), 1200);
+          showStatus('Данные загружены. Перезагрузка...', 'success');
+          setTimeout(() => location.reload(), 1000);
         } else {
           showStatus(`Ошибка: ${result.error}`, 'error');
         }
