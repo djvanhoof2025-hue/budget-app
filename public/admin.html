@@ -92,15 +92,16 @@
         <div class="modal-actions"><button id="btn-save-settings" class="btn btn-primary">Сохранить</button></div>
         <div class="divider"></div>
         <h3>Удалённая база данных</h3>
-        <p class="settings-hint">Синхронизация происходит вручную по кнопке. Приложение работает автономно.</p>
+        <p class="settings-hint">Используйте кнопки для загрузки или выгрузки данных. Данные синхронизируются только по запросу.</p>
         <div class="modal-field"><label>Хост</label><input type="text" id="db-host" placeholder="db.example.com"></div>
         <div class="modal-field"><label>Имя базы данных</label><input type="text" id="db-name" placeholder="budget_db"></div>
         <div class="modal-field"><label>Пользователь</label><input type="text" id="db-user" placeholder="admin"></div>
         <div class="modal-field"><label>Пароль</label><input type="password" id="db-pass" placeholder="••••••••"></div>
-        <div class="modal-actions">
-          <button id="btn-save-db" class="btn btn-primary">Сохранить конфиг</button>
+        <div class="modal-actions" style="flex-wrap: wrap; gap: 8px;">
+          <button id="btn-save-db" class="btn btn-secondary">Сохранить конфиг</button>
           <button id="btn-test-db" class="btn btn-secondary">Проверить</button>
-          <button id="btn-sync-db" class="btn btn-primary">Синхронизировать</button>
+          <button id="btn-pull-db" class="btn btn-primary">📥 Загрузить из БД</button>
+          <button id="btn-sync-db" class="btn btn-primary">📤 Синхронизировать</button>
         </div>
         <div id="db-status" class="db-status"></div>
       </div>
