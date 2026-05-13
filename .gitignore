@@ -1,0 +1,17 @@
+# Зависимости Node.js
+node_modules/
+
+# Локальные конфиги и логи
+*.log
+.env
+.env.local
+.env.*.local
+
+# Кэш и временные файлы
+.DS_Store
+Thumbs.db
+coverage/
+
+# Редакторы
+.vscode/
+.idea/

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <title>Бюджет | Админ панель</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="content">
+    <header>
+      <h1 id="page-title">Управление бюджетом</h1>
+      <p id="page-subtitle">Главная страница</p>
+    </header>
+
+    <section id="home-tab" class="tab-content active">
+      <div class="typo-wrapper">
+        <div class="typo-header">
+          <button id="nav-prev" class="nav-btn">&lsaquo;</button>
+          <h2 id="period-title">Загрузка...</h2>
+          <button id="btn-month-cfg" class="btn btn-secondary btn-sm">⚙️ Месяц</button>
+          <button id="nav-next" class="nav-btn">&rsaquo;</button>
+        </div>
+        <div id="view-switcher" class="view-switcher"></div>
+        <div id="calendar-root" class="calendar-container"></div>
+        <div id="global-total" class="global-total">Итого: <strong>0 ₽</strong></div>
+        <p class="hint">Нажмите на день для редактирования. Зарплата и ставка настраиваются в ⚙️ Месяц.</p>
+      </div>
+    </section>
+
+    <section id="incomes-tab" class="tab-content">
+      <div class="incomes-wrapper">
+        <div class="incomes-header"><h2>Доходы</h2><button id="btn-open-income-modal" class="btn btn-primary btn-sm">+ Добавить доход</button></div>
+        <div class="incomes-grid">
+          <div class="card inc-categories-card">
+            <div class="card-header"><h3>Категории доходов</h3><button id="btn-add-inc-cat" class="btn btn-secondary btn-sm">+ Категория</button></div>
+            <div class="archive-toggle"><button id="toggle-inc-cat-archive" class="btn-link">Показать архив</button></div>
+            <div id="inc-categories-list" class="list-container"></div>
+          </div>
+          <div class="card inc-history-card">
+            <div class="card-header"><h3>История доходов</h3></div>
+            <div class="month-selector"><select id="inc-month" class="modal-select"></select><select id="inc-year" class="modal-select"></select></div>
+            <div class="archive-toggle"><button id="toggle-inc-archive" class="btn-link">Показать архив</button></div>
+            <div id="incomes-history" class="list-container"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="expenses-tab" class="tab-content">
+      <div class="expenses-wrapper">
+        <div class="expenses-header"><h2>Расходы и долги</h2><button id="btn-open-expense-modal" class="btn btn-primary btn-sm">+ Добавить расход</button></div>
+        <div class="expenses-grid">
+          <div class="card categories-card">
+            <div class="card-header"><h3>Категории</h3><button id="btn-add-category" class="btn btn-secondary btn-sm">+ Категория</button></div>
+            <div class="archive-toggle"><button id="toggle-cat-archive" class="btn-link">Показать архив</button></div>
+            <div id="categories-list" class="list-container"></div>
+          </div>
+          <div class="card debts-card">
+            <div class="card-header"><h3>Долги</h3><button id="btn-add-debt" class="btn btn-secondary btn-sm">+ Долг</button></div>
+            <div class="archive-toggle"><button id="toggle-debt-archive" class="btn-link">Показать архив</button></div>
+            <div id="debts-list" class="list-container"></div>
+          </div>
+        </div>
+        <div class="card expenses-history-card">
+          <div class="card-header"><h3>История расходов</h3></div>
+          <div class="archive-toggle"><button id="toggle-exp-archive" class="btn-link">Показать архив</button></div>
+          <div id="expenses-history" class="list-container"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="stats-tab" class="tab-content">
+      <div class="analytics-wrapper">
+        <div class="analytics-header"><h2>Аналитика бюджета</h2><div class="month-selector"><select id="stats-month" class="modal-select"></select><select id="stats-year" class="modal-select"></select></div></div>
+        <div class="stats-grid">
+          <div class="stat-card income"><div class="stat-label">Доходы</div><div class="stat-value" id="stat-income">0 ₽</div></div>
+          <div class="stat-card expense"><div class="stat-label">Расходы</div><div class="stat-value" id="stat-expense">0 ₽</div></div>
+          <div class="stat-card balance"><div class="stat-label">Остаток</div><div class="stat-value" id="stat-balance">0 ₽</div></div>
+          <div class="stat-card overspend"><div class="stat-label">Перерасход</div><div class="stat-value" id="stat-overspend">0 ₽</div></div>
+        </div>
+        <div class="card limits-card"><div class="card-header"><h3>Лимиты по категориям</h3></div><div id="limits-list" class="list-container"></div></div>
+        <div class="card alerts-card"><div class="card-header"><h3>Рекомендации</h3></div><div id="alerts-list" class="list-container"></div></div>
+      </div>
+    </section>
+
+    <section id="settings-tab" class="tab-content">
+      <div class="card settings-card">
+        <h3>Основные настройки</h3>
+        <div class="modal-field"><label>Базовая ставка за рабочий день (₽)</label><input type="number" id="base-pay" step="10" min="0" placeholder="5200"></div>
+        <div class="modal-actions"><button id="btn-save-settings" class="btn btn-primary">Сохранить</button></div>
+        <div class="divider"></div>
+        <h3>Удалённая база данных</h3>
+        <p class="settings-hint">Синхронизация происходит вручную по кнопке. Приложение работает автономно.</p>
+        <div class="modal-field"><label>Хост</label><input type="text" id="db-host" placeholder="db.example.com"></div>
+        <div class="modal-field"><label>Имя базы данных</label><input type="text" id="db-name" placeholder="budget_db"></div>
+        <div class="modal-field"><label>Пользователь</label><input type="text" id="db-user" placeholder="admin"></div>
+        <div class="modal-field"><label>Пароль</label><input type="password" id="db-pass" placeholder="••••••••"></div>
+        <div class="modal-actions">
+          <button id="btn-save-db" class="btn btn-primary">Сохранить конфиг</button>
+          <button id="btn-test-db" class="btn btn-secondary">Проверить</button>
+          <button id="btn-sync-db" class="btn btn-primary">Синхронизировать</button>
+        </div>
+        <div id="db-status" class="db-status"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="#" class="nav-item active" data-tab="home"><span class="nav-label">Главная</span></a>
+    <a href="#" class="nav-item" data-tab="incomes"><span class="nav-label">Доходы</span></a>
+    <a href="#" class="nav-item" data-tab="expenses"><span class="nav-label">Расходы</span></a>
+    <a href="#" class="nav-item" data-tab="stats"><span class="nav-label">Аналитика</span></a>
+    <a href="#" class="nav-item" data-tab="settings"><span class="nav-label">Настройки</span></a>
+  </nav>
+
+  <!-- МОДАЛКИ -->
+  <div id="modal-overlay" class="modal-overlay"><div class="modal"><h3 id="modal-title">Редактирование дня</h3><div class="modal-field"><label>Коэффициент</label><input type="number" id="input-coef" step="0.05" min="0" placeholder="0" inputmode="decimal"></div><div class="modal-field"><label>Комментарий</label><textarea id="input-comment" placeholder="Заметка, номер смены..."></textarea></div><div class="modal-options"><label class="checkbox-wrap"><input type="checkbox" id="chk-sick"> Больничный</label><label class="checkbox-wrap"><input type="checkbox" id="chk-off"> Выходной</label><label class="checkbox-wrap"><input type="checkbox" id="chk-event"> Мероприятие</label></div><div id="event-fields" class="modal-section hidden"><h4>Данные мероприятия</h4><div class="modal-field"><label>Локация</label><input type="text" id="input-location" placeholder="Клуб, адрес, название ивента"></div><div class="modal-field"><label>Гонорар DJ (₽)</label><input type="number" id="input-dj-price" step="100" min="0" placeholder="0"></div></div><div class="modal-section"><h4>Дополнительный доход</h4><div id="extra-incomes-list"></div><button id="btn-add-income" class="btn btn-secondary btn-sm">+ Добавить доход</button></div><div class="modal-actions"><button id="btn-cancel" class="btn btn-secondary">Отмена</button><button id="btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  
+  <div id="month-cfg-modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <h3 id="month-cfg-title">Настройки месяца</h3>
+      <div class="modal-field"><label>Ставка за рабочий день (₽)</label><input type="number" id="cfg-daily-rate" step="100" min="0" placeholder="Пусто = глобальная"></div>
+      <div class="modal-field"><label>Аванс (выплата 25 числа, ₽)</label><input type="number" id="cfg-advance" step="1000" min="0" placeholder="45000"></div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin:8px 0 14px;line-height:1.4;">
+        Остаток зарплаты рассчитывается автоматически:<br>
+        <strong>Начислено за прошлый месяц − Аванс прошлого месяца</strong>.<br>
+        Выплачивается 10-го числа текущего месяца и учитывается в бюджете этого месяца.
+      </p>
+      <div class="modal-actions">
+        <button id="cfg-btn-cancel" class="btn btn-secondary">Отмена</button>
+        <button id="cfg-btn-save" class="btn btn-primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="inc-cat-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="inc-cat-modal-title">Категория дохода</h3><div class="modal-field"><label>Название</label><input type="text" id="inc-cat-name" placeholder="Например: Фриланс"></div><div class="modal-actions"><button id="inc-cat-btn-cancel" class="btn btn-secondary">Отмена</button><button id="inc-cat-btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  <div id="income-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="income-modal-title">Добавить доход</h3><div class="modal-field"><label>Тип</label><select id="income-type" class="modal-select"><option value="extra">Дополнительный</option><option value="dj">DJ / Мероприятие</option></select></div><div class="modal-field"><label>Название / Описание</label><input type="text" id="income-desc" placeholder="Заказ, проект, событие..."></div><div class="modal-field"><label>Категория</label><select id="income-category" class="modal-select"></select></div><div class="modal-field"><label>Сумма (₽)</label><input type="number" id="income-amount" step="10" min="0" placeholder="0"></div><div class="modal-field"><label>Дата</label><input type="date" id="income-date"></div><div id="income-dj-fields" class="modal-section hidden"><h4>Данные мероприятия</h4><div class="modal-field"><label>Локация</label><input type="text" id="income-location" placeholder="Адрес, клуб"></div></div><div class="modal-actions"><button id="income-btn-cancel" class="btn btn-secondary">Отмена</button><button id="income-btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  <div id="expense-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="exp-modal-title">Добавить расход</h3><div class="modal-field"><label>Название</label><input type="text" id="exp-name" placeholder="Аренда, Продукты..."></div><div class="modal-field"><label>Категория</label><select id="exp-category" class="modal-select"></select></div><div class="modal-field"><label>Подкатегория</label><select id="exp-subcategory" class="modal-select"><option value="">— Не выбрана —</option></select></div><div class="modal-field"><label>Сумма (₽)</label><input type="number" id="exp-amount" step="10" min="0" placeholder="0"></div><div class="modal-field"><label>Дата</label><input type="date" id="exp-date"></div><label class="checkbox-wrap"><input type="checkbox" id="exp-recurring"> Постоянный расход</label><div class="modal-actions"><button id="exp-btn-cancel" class="btn btn-secondary">Отмена</button><button id="exp-btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  <div id="cat-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="cat-modal-title">Категория</h3><div class="modal-field"><label>Название</label><input type="text" id="cat-name" placeholder="Например: Жильё"></div><div class="modal-field"><label>Лимит на месяц (₽)</label><input type="number" id="cat-limit" step="100" min="0" placeholder="0"></div><div class="modal-actions"><button id="cat-btn-cancel" class="btn btn-secondary">Отмена</button><button id="cat-btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  <div id="subcat-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="subcat-modal-title">Подкатегория</h3><div class="modal-field"><label>Название</label><input type="text" id="subcat-name" placeholder="Например: Электричество"></div><div class="modal-actions"><button id="subcat-btn-cancel" class="btn btn-secondary">Отмена</button><button id="subcat-btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  <div id="debt-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="debt-modal-title">Долг</h3><div class="modal-field"><label>Название</label><input type="text" id="debt-name" placeholder="Кредит, Займ..."></div><div class="modal-field"><label>Общая сумма (₽)</label><input type="number" id="debt-total" step="100" min="0" placeholder="0"></div><div class="modal-field"><label>Ежемесячный платёж (₽)</label><input type="number" id="debt-monthly" step="100" min="0" placeholder="0"></div><div class="modal-field"><label>Дата первого платежа</label><input type="date" id="debt-start-date"></div><div class="modal-field"><label>Категория</label><select id="debt-category" class="modal-select"></select></div><div class="modal-field"><label>Подкатегория</label><select id="debt-subcategory" class="modal-select"><option value="">— Не выбрана —</option></select></div><div class="modal-actions"><button id="debt-btn-cancel" class="btn btn-secondary">Отмена</button><button id="debt-btn-save" class="btn btn-primary">Сохранить</button></div></div></div>
+  <div id="payment-modal-overlay" class="modal-overlay"><div class="modal"><h3 id="payment-modal-title">Платёж</h3><div id="payment-info" class="payment-info"></div><div class="modal-field"><label>Сумма (₽)</label><input type="number" id="payment-amount" step="10" min="0" placeholder="0"></div><div class="modal-field"><label>Дата</label><input type="date" id="payment-date"></div><div class="modal-actions"><button id="payment-btn-cancel" class="btn btn-secondary">Отмена</button><button id="payment-btn-save" class="btn btn-primary">Подтвердить</button></div></div></div>
+
+  <script src="app.js"></script>
+  <script src="incomes.js"></script>
+  <script src="expenses.js"></script>
+  <script src="statistics.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
