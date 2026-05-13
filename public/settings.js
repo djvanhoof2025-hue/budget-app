@@ -16,6 +16,7 @@
     };
     const getConfig = () => ({ host: dom.host.value.trim(), name: dom.name.value.trim(), user: dom.user.value.trim(), pass: dom.pass.value });
     const safeParse = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) || f; } catch { return f; } };
+    const normalizeDate = (val) => val ? String(val).trim().substring(0, 10) : '';
 
     const loadSettings = () => {
       dom.basePay.value = safeParse('budget_settings', { basePay: 5200 }).basePay || 5200;
@@ -52,7 +53,7 @@
       finally { dom.testBtn.disabled = false; dom.testBtn.textContent = 'Проверить'; }
     };
 
-    // 📥 Загрузка из БД с жесткой нормализацией дат и типов
+    // 📥 Загрузка из БД с ЖЁСТКОЙ нормализацией дат
     dom.pullBtn.onclick = async () => {
       const cfg = getConfig();
       if (!cfg.host || !cfg.name) return showStatus('Заполните конфигурацию БД', 'error');
@@ -64,28 +65,34 @@
         if (result.success) {
           const data = result.data;
           
-          // 🔧 Нормализация доходов
+          // Нормализуем ДОХОДЫ
           if (data.budget_incomes) {
-            data.budget_incomes = data.budget_incomes.map(i => {
-              let d = String(i.date || '').trim();
-              if (d.includes('T')) d = d.split('T')[0];
-              return { ...i, date: d, type: String(i.type || '').trim().toLowerCase(), isArchived: Boolean(Number(i.isArchived) || 0), amount: Number(i.amount) || 0 };
-            });
+            data.budget_incomes = data.budget_incomes.map(i => ({
+              ...i,
+              date: normalizeDate(i.date),
+              type: String(i.type || '').trim().toLowerCase(),
+              isArchived: Boolean(Number(i.isArchived) || 0),
+              amount: Number(i.amount) || 0
+            }));
           }
-          // 🔧 Нормализация расходов
+          // Нормализуем РАСХОДЫ
           if (data.budget_expenses) {
-            data.budget_expenses = data.budget_expenses.map(e => {
-              let d = String(e.date || '').trim();
-              if (d.includes('T')) d = d.split('T')[0];
-              return { ...e, date: d, type: String(e.type || '').trim().toLowerCase(), isArchived: Boolean(Number(e.isArchived) || 0), isAuto: Boolean(Number(e.isAuto) || 0), isRecurring: Boolean(Number(e.recurring) || 0), amount: Number(e.amount) || 0 };
-            });
+            data.budget_expenses = data.budget_expenses.map(e => ({
+              ...e,
+              date: normalizeDate(e.date),
+              type: String(e.type || '').trim().toLowerCase(),
+              isArchived: Boolean(Number(e.isArchived) || 0),
+              isAuto: Boolean(Number(e.isAuto) || 0),
+              isRecurring: Boolean(Number(e.recurring) || 0),
+              amount: Number(e.amount) || 0
+            }));
           }
 
           for (const key in data) {
             localStorage.setItem(key, JSON.stringify(data[key]));
           }
           showStatus('Данные загружены. Перезагрузка...', 'success');
-          setTimeout(() => location.reload(), 1000);
+          setTimeout(() => location.reload(), 800);
         } else {
           showStatus(`Ошибка: ${result.error}`, 'error');
         }
