@@ -41,18 +41,19 @@
       dom.switcher.appendChild(btn);
     });
 
-    // 🔧 ИСПРАВЛЕНО: надёжное чтение доходов для мобильных
+    // 🔧 Пуленепробиваемое чтение доходов
     const getIncomesForDate = (dateStr) => {
       try {
         const raw = localStorage.getItem('budget_incomes');
         const all = raw ? JSON.parse(raw) : [];
+        console.log(`[DEBUG] В incomes всего: ${all.length} записей. Ищем дату: ${dateStr}`);
         return all.filter(i => {
-          const isArchived = Boolean(i.isArchived);
           const type = String(i.type || '').trim().toLowerCase();
+          const isArchived = Boolean(Number(i.isArchived) || 0);
           const date = String(i.date || '').trim();
           return date === dateStr && !isArchived;
         });
-      } catch { return []; }
+      } catch (e) { console.error('[DEBUG] Ошибка парсинга incomes:', e); return []; }
     };
 
     const calcDayTotal = (info, dateStr, y, m) => {
@@ -184,22 +185,22 @@
       dom.mSick.checked = !!info.sick; dom.mOff.checked = !!info.off; dom.mEvent.checked = !!info.event;
       dom.mLocation.value = info.eventLocation || ''; dom.mDjPrice.value = '';
       
-      // 🔧 Читаем свежий массив прямо при открытии модалки
+      // 🔧 Читаем свежие данные
       const dayIncomes = getIncomesForDate(dateStr);
       
-      // Доп. доходы
       tempIncomes = dayIncomes.filter(i => i.type === 'extra').map(i => ({ id: i.id, desc: i.description, amount: i.amount }));
       renderIncomes();
       
-      // DJ доход
       const djIncome = dayIncomes.find(i => i.type === 'dj');
       if (djIncome) {
         dom.mEvent.checked = true;
         dom.mDjPrice.value = djIncome.amount;
         dom.mLocation.value = djIncome.location || info.eventLocation || '';
+        console.log('[DEBUG] DJ доход найден:', djIncome);
       } else {
         dom.mEvent.checked = false;
         dom.mLocation.value = info.eventLocation || '';
+        console.log('[DEBUG] DJ доход НЕ найден для этой даты');
       }
       
       dom.eventFields.classList.toggle('hidden', !dom.mEvent.checked);

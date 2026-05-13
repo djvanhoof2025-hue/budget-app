@@ -52,7 +52,7 @@
       finally { dom.testBtn.disabled = false; dom.testBtn.textContent = 'Проверить'; }
     };
 
-    // 📥 Загрузка из БД
+    // 📥 Загрузка из БД с нормализацией для мобильных
     dom.pullBtn.onclick = async () => {
       const cfg = getConfig();
       if (!cfg.host || !cfg.name) return showStatus('Заполните конфигурацию БД', 'error');
@@ -63,18 +63,34 @@
         const result = await res.json();
         if (result.success) {
           const data = result.data;
-          // 🔧 Записываем в localStorage синхронно
+          // 🔧 Нормализация типов перед записью в localStorage
+          if (data.budget_incomes) {
+            data.budget_incomes = data.budget_incomes.map(i => ({
+              ...i,
+              type: String(i.type || '').trim().toLowerCase(),
+              isArchived: Boolean(Number(i.isArchived) || 0),
+              amount: Number(i.amount) || 0
+            }));
+          }
+          if (data.budget_expenses) {
+            data.budget_expenses = data.budget_expenses.map(e => ({
+              ...e,
+              type: String(e.type || '').trim().toLowerCase(),
+              isArchived: Boolean(Number(e.isArchived) || 0),
+              isAuto: Boolean(Number(e.isAuto) || 0),
+              isRecurring: Boolean(Number(e.recurring) || 0),
+              amount: Number(e.amount) || 0
+            }));
+          }
+
+          // Запись
           for (const key in data) {
             localStorage.setItem(key, JSON.stringify(data[key]));
           }
-          showStatus('Данные загружены из БД', 'success');
+          showStatus('Данные загружены из БД. Перезагрузка...', 'success');
           
-          // 🔧 Небольшая задержка для мобильных браузеров (обход race condition)
-          setTimeout(() => {
-            if (window.refreshCalendar) window.refreshCalendar();
-            if (window.refreshIncomes) window.refreshIncomes();
-            if (window.refreshStats) window.refreshStats();
-          }, 300);
+          // 🔧 Гарантированное обновление на мобильных
+          setTimeout(() => location.reload(), 1200);
         } else {
           showStatus(`Ошибка: ${result.error}`, 'error');
         }
@@ -104,7 +120,7 @@
             try { data.calendar[k] = JSON.parse(localStorage.getItem(k)); } catch {}
           }
         }
-        const payload = { config: cfg,  data };
+        const payload = { config: cfg, data };
         const res = await fetch('/api/sync', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         const resData = await res.json();
         if (resData.success) showStatus(resData.message, 'success');
