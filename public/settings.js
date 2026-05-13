@@ -63,13 +63,18 @@
         const result = await res.json();
         if (result.success) {
           const data = result.data;
+          // 🔧 Записываем в localStorage синхронно
           for (const key in data) {
             localStorage.setItem(key, JSON.stringify(data[key]));
           }
           showStatus('Данные загружены из БД', 'success');
-          if (window.refreshCalendar) window.refreshCalendar();
-          if (window.refreshIncomes) window.refreshIncomes();
-          if (window.refreshStats) window.refreshStats();
+          
+          // 🔧 Небольшая задержка для мобильных браузеров (обход race condition)
+          setTimeout(() => {
+            if (window.refreshCalendar) window.refreshCalendar();
+            if (window.refreshIncomes) window.refreshIncomes();
+            if (window.refreshStats) window.refreshStats();
+          }, 300);
         } else {
           showStatus(`Ошибка: ${result.error}`, 'error');
         }

@@ -41,7 +41,19 @@
       dom.switcher.appendChild(btn);
     });
 
-    const getIncomesForDate = (dateStr) => safeParse('budget_incomes', []).filter(i => i.date === dateStr && !i.isArchived);
+    // 🔧 ИСПРАВЛЕНО: надёжное чтение доходов для мобильных
+    const getIncomesForDate = (dateStr) => {
+      try {
+        const raw = localStorage.getItem('budget_incomes');
+        const all = raw ? JSON.parse(raw) : [];
+        return all.filter(i => {
+          const isArchived = Boolean(i.isArchived);
+          const type = String(i.type || '').trim().toLowerCase();
+          const date = String(i.date || '').trim();
+          return date === dateStr && !isArchived;
+        });
+      } catch { return []; }
+    };
 
     const calcDayTotal = (info, dateStr, y, m) => {
       const cfg = getMonthCfg(y, m);
@@ -132,7 +144,6 @@
       dom.globalTotal.innerHTML = `Итого ${labels[state.view]}: <strong>${viewTotal.toLocaleString('ru')} ₽</strong>`;
     };
 
-    // --- Настройки месяца ---
     const openMonthCfg = () => {
       const cfg = getMonthCfg(state.year, state.month);
       dom.cfgTitle.textContent = `Настройки: ${MONTHS[state.month]} ${state.year}`;
@@ -143,10 +154,7 @@
     };
     dom.btnMonthCfg.onclick = openMonthCfg;
     dom.cfgSave.onclick = () => {
-      const cfg = {
-        dailyRate: parseFloat(dom.cfgRate.value) || null,
-        advance: parseFloat(dom.cfgAdvance.value) || 0
-      };
+      const cfg = { dailyRate: parseFloat(dom.cfgRate.value) || null, advance: parseFloat(dom.cfgAdvance.value) || 0 };
       saveMonthCfg(state.year, state.month, cfg);
       dom.cfgModal.classList.remove('visible');
       render();
@@ -156,7 +164,6 @@
     dom.cfgCancel.onclick = () => dom.cfgModal.classList.remove('visible');
     dom.cfgModal.onclick = e => { if (e.target === dom.cfgModal) dom.cfgModal.classList.remove('visible'); };
 
-    // --- Модалка дня ---
     const renderIncomes = () => {
       dom.incomesList.innerHTML = '';
       tempIncomes.forEach((item, idx) => {
@@ -177,15 +184,22 @@
       dom.mSick.checked = !!info.sick; dom.mOff.checked = !!info.off; dom.mEvent.checked = !!info.event;
       dom.mLocation.value = info.eventLocation || ''; dom.mDjPrice.value = '';
       
+      // 🔧 Читаем свежий массив прямо при открытии модалки
       const dayIncomes = getIncomesForDate(dateStr);
+      
+      // Доп. доходы
       tempIncomes = dayIncomes.filter(i => i.type === 'extra').map(i => ({ id: i.id, desc: i.description, amount: i.amount }));
       renderIncomes();
       
+      // DJ доход
       const djIncome = dayIncomes.find(i => i.type === 'dj');
       if (djIncome) {
         dom.mEvent.checked = true;
         dom.mDjPrice.value = djIncome.amount;
         dom.mLocation.value = djIncome.location || info.eventLocation || '';
+      } else {
+        dom.mEvent.checked = false;
+        dom.mLocation.value = info.eventLocation || '';
       }
       
       dom.eventFields.classList.toggle('hidden', !dom.mEvent.checked);
