@@ -6,6 +6,8 @@
     let catState = { mode: 'add', id: null }, incomeState = { mode: 'add', id: null };
     let showArchive = { cat: false, income: false };
 
+    const getLocalDateStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     const dom = {
       catList: document.getElementById('inc-categories-list'), historyList: document.getElementById('incomes-history'),
       btnAddCat: document.getElementById('btn-add-inc-cat'), btnOpenIncome: document.getElementById('btn-open-income-modal'),
@@ -39,23 +41,6 @@
     const populateCats = () => {
       dom.incomeCat.innerHTML = '<option value="">— Без категории —</option>';
       categories.filter(c => !c.isArchived).forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.name; dom.incomeCat.appendChild(opt); });
-    };
-
-    // Вспомогательные расчёты
-    const getPrevMonth = (y, m) => { let pm = m - 1, py = y; if (pm < 0) { pm = 11; py--; } return { y: py, m: pm }; };
-    const getRate = (y, m) => {
-      const cfg = safeParse(`budget_month_cfg_${y}_${m}`, { dailyRate: null, advance: 0 });
-      return Number(cfg.dailyRate) || Number(safeParse('budget_settings', { basePay: 5200 }).basePay) || 5200;
-    };
-    const calcEarned = (y, m) => {
-      const data = safeParse(`budget_app_${y}_${m}`, {});
-      const rate = getRate(y, m);
-      let total = 0;
-      for (const info of Object.values(data)) {
-        const coef = Number(info.coef) || 0;
-        if (!info.sick && !info.off && coef > 0) total += coef * rate;
-      }
-      return total;
     };
 
     const renderCategories = () => {
@@ -94,64 +79,28 @@
     const deleteCat = id => { categories = categories.filter(c => c.id !== id); saveAll(); renderCategories(); renderHistory(); };
 
     const renderHistory = () => {
-      loadData();
-      dom.historyList.innerHTML = '';
-      const selM = parseInt(dom.monthSel.value);
-      const selY = parseInt(dom.yearSel.value);
-
-      // Расчёт кассового дохода
-      const earnedCurr = calcEarned(selY, selM);
-      const cfgCurr = safeParse(`budget_month_cfg_${selY}_${selM}`, { dailyRate: null, advance: 0 });
-      const advanceCurr = Number(cfgCurr.advance) || 0;
-
-      const { y: py, m: pm } = getPrevMonth(selY, selM);
-      const earnedPrev = calcEarned(py, pm);
-      const cfgPrev = safeParse(`budget_month_cfg_${py}_${pm}`, { dailyRate: null, advance: 0 });
-      const advancePrev = Number(cfgPrev.advance) || 0;
-      const remainderPrev = Math.max(0, earnedPrev - advancePrev);
-
-      const totalCash = advanceCurr + remainderPrev;
-
-      // Виртуальные денежные поступления
-      let cashIncomes = [];
-      if (remainderPrev > 0) {
-        cashIncomes.push({ id: `rem_${selY}_${selM}`, date: `${selY}-${String(selM+1).padStart(2,'0')}-10`, type: 'salary', amount: remainderPrev, description: `Остаток ЗП за ${MONTHS[pm]}`, isArchived: false, isVirtual: true });
-      }
-      if (advanceCurr > 0) {
-        cashIncomes.push({ id: `adv_${selY}_${selM}`, date: `${selY}-${String(selM+1).padStart(2,'0')}-25`, type: 'salary', amount: advanceCurr, description: 'Аванс', isArchived: false, isVirtual: true });
-      }
-
-      // Прочие ручные доходы
+      loadData(); dom.historyList.innerHTML = '';
+      const selM = parseInt(dom.monthSel.value); const selY = parseInt(dom.yearSel.value);
       const otherIncomes = incomes.filter(i => {
         if (!showArchive.income && i.isArchived) return false;
         const d = new Date(i.date); return d.getFullYear() === selY && d.getMonth() === selM;
       });
-
       const otherTotal = otherIncomes.reduce((s,i) => s + i.amount, 0);
-
-      // Сводка
       const summary = document.createElement('div');
       summary.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;';
-      summary.innerHTML = `
-        <span style="color:var(--text-muted);">Начислено за месяц: ${fmtMoney(earnedCurr)}</span>
-        <span style="color:#8b5cf6;font-weight:600;">Зарплата (на руки): ${fmtMoney(totalCash)}</span>
-        <span style="color:var(--success);font-weight:600;">Прочие: ${fmtMoney(otherTotal)}</span>
-        <span style="margin-left:auto;font-weight:700;">Всего доход: ${fmtMoney(totalCash + otherTotal)}</span>
-      `;
+      summary.innerHTML = `<span style="color:var(--success);font-weight:600;">Прочие доходы: ${fmtMoney(otherTotal)}</span>`;
       dom.historyList.appendChild(summary);
 
-      const allItems = [...cashIncomes, ...otherIncomes].sort((a,b) => new Date(b.date) - new Date(a.date));
-      if (!allItems.length) { dom.historyList.innerHTML += '<p style="color:var(--text-muted);text-align:center;padding:12px;">Нет доходов за выбранный месяц</p>'; return; }
-
-      allItems.forEach(inc => {
+      if (!otherIncomes.length) { dom.historyList.innerHTML += '<p style="color:var(--text-muted);text-align:center;padding:12px;">Нет доходов за выбранный месяц</p>'; return; }
+      otherIncomes.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(inc => {
         const el = document.createElement('div'); el.className = 'income-row';
         if (inc.isArchived) el.style.opacity = '0.6';
         const cat = categories.find(c => c.id === inc.categoryId);
-        const catName = cat ? cat.name : (inc.type === 'salary' ? 'Зарплата' : 'Без категории');
-        const typeLabel = inc.type === 'dj' ? 'DJ' : inc.type === 'salary' ? 'ЗАРПЛАТА' : 'Доп.';
-        const badgeStyle = inc.type === 'salary' ? 'background:#faf5ff;color:#8b5cf6;border-color:#c084fc;' : inc.type === 'dj' ? 'background:#fef3c7;color:#b45309;border-color:#fde68a;' : 'background:#dcfce7;color:var(--success);border-color:#bbf7d0;';
+        const catName = cat ? cat.name : 'Без категории';
+        const typeLabel = inc.type === 'dj' ? 'DJ' : 'Доп.';
+        const badgeStyle = inc.type === 'dj' ? 'background:#fef3c7;color:#b45309;border-color:#fde68a;' : 'background:#dcfce7;color:var(--success);border-color:#bbf7d0;';
         const archBadge = inc.isArchived ? '<span class="badge badge-archived">АРХИВ</span>' : '';
-        const actions = inc.isVirtual ? '' : (inc.isArchived ? `<button class="btn-icon unarch-inc" data-id="${inc.id}">↺</button>` : `<button class="btn-icon edit-inc" data-id="${inc.id}">✎</button><button class="btn-icon del-inc" data-id="${inc.id}">×</button>`);
+        const actions = inc.isArchived ? `<button class="btn-icon unarch-inc" data-id="${inc.id}">↺</button>` : `<button class="btn-icon edit-inc" data-id="${inc.id}">✎</button><button class="btn-icon del-inc" data-id="${inc.id}">×</button>`;
         el.innerHTML = `<div class="income-info"><div class="income-name">${inc.description || typeLabel}</div><div class="income-meta"><span>${fmtDate(inc.date)}</span><span>${catName}</span><span class="badge" style="${badgeStyle}">${typeLabel}</span>${archBadge}</div></div><div style="display:flex;align-items:center;gap:8px;"><div class="income-amount">+${fmtMoney(inc.amount)}</div>${actions}</div>`;
         dom.historyList.appendChild(el);
       });
@@ -174,7 +123,7 @@
         dom.incomeAmount.value = i.amount; dom.incomeDate.value = i.date; dom.incomeLoc.value = i.location || '';
       } else {
         dom.incomeType.value = 'extra'; dom.incomeDesc.value = ''; dom.incomeCat.value = '';
-        dom.incomeAmount.value = ''; dom.incomeDate.value = new Date().toISOString().split('T')[0]; dom.incomeLoc.value = '';
+        dom.incomeAmount.value = ''; dom.incomeDate.value = getLocalDateStr(); dom.incomeLoc.value = '';
       }
       dom.incomeDjFields.classList.toggle('hidden', dom.incomeType.value !== 'dj');
       openModal(dom.incomeModal);

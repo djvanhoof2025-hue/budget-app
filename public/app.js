@@ -5,6 +5,14 @@
     let state = { year: new Date().getFullYear(), month: new Date().getMonth(), view: 'quarter', editing: null };
     let tempIncomes = [];
 
+    // 🔧 СТРОГО ЛОКАЛЬНАЯ ДАТА (YYYY-MM-DD без UTC сдвига)
+    const getLocalDateStr = (d = new Date()) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
     const dom = {
       root: document.getElementById('calendar-root'), title: document.getElementById('period-title'),
       globalTotal: document.getElementById('global-total'), switcher: document.getElementById('view-switcher'),
@@ -32,7 +40,6 @@
     const loadMonth = (y, m) => safeParse(getStorageKey(y, m), {});
     const saveMonth = (y, m, data) => localStorage.setItem(getStorageKey(y, m), JSON.stringify(data));
 
-    // 🔧 СТРОГАЯ НОРМАЛИЗАЦИЯ ДАТ (только строки, без new Date)
     const normalizeDate = (val) => val ? String(val).trim().substring(0, 10) : '';
 
     ['month','quarter','half','year'].forEach((v, i) => {
@@ -187,8 +194,6 @@
       dom.mLocation.value = info.eventLocation || ''; dom.mDjPrice.value = '';
       
       const dayIncomes = getIncomesForDate(dateStr);
-      console.log(`[CAL DEBUG] Ищем доходы на ${dateStr}. Найдено: ${dayIncomes.length}`, dayIncomes.map(i=>i.type));
-      
       tempIncomes = dayIncomes.filter(i => i.type === 'extra').map(i => ({ id: i.id, desc: i.description, amount: i.amount }));
       renderIncomes();
       

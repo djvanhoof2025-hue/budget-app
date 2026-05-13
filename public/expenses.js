@@ -5,6 +5,8 @@
     let catState={mode:'add',id:null}, subcatState={mode:'add',id:null,parentId:null}, debtState={mode:'add',id:null}, paymentState={mode:'pay',debtId:null}, expState={mode:'add',id:null};
     let showArchive={cat:false,debt:false,exp:false};
 
+    const getLocalDateStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     const dom={
       catList:document.getElementById('categories-list'),debtList:document.getElementById('debts-list'),historyList:document.getElementById('expenses-history'),
       btnAddCat:document.getElementById('btn-add-category'),btnAddDebt:document.getElementById('btn-add-debt'),btnOpenExp:document.getElementById('btn-open-expense-modal'),
@@ -88,8 +90,7 @@
       else { const c = categories.find(x=>x.id===catState.id); if(c){c.name=name; c.monthlyLimit=limit;} }
       saveAll(); renderCategories(); closeModal(dom.catModal);
     };
-    dom.catCancel.onclick = () => closeModal(dom.catModal);
-    dom.catModal.onclick = e => { if(e.target===dom.catModal) closeModal(dom.catModal); };
+    dom.catCancel.onclick = () => closeModal(dom.catModal); dom.catModal.onclick = e => { if(e.target===dom.catModal) closeModal(dom.catModal); };
     dom.btnAddCat.onclick = () => openCatModal('add');
     const deleteCat = id => { categories = categories.filter(c=>c.id!==id); saveAll(); renderCategories(); renderHistory(); };
 
@@ -105,8 +106,7 @@
       else { const s = subcategories.find(x=>x.id===subcatState.id); if(s) s.name=name; }
       saveAll(); renderCategories(); closeModal(dom.subcatModal);
     };
-    dom.subcatCancel.onclick = () => closeModal(dom.subcatModal);
-    dom.subcatModal.onclick = e => { if(e.target===dom.subcatModal) closeModal(dom.subcatModal); };
+    dom.subcatCancel.onclick = () => closeModal(dom.subcatModal); dom.subcatModal.onclick = e => { if(e.target===dom.subcatModal) closeModal(dom.subcatModal); };
 
     const renderDebts = () => {
       dom.debtList.innerHTML = '';
@@ -138,7 +138,7 @@
         dom.debtCat.dispatchEvent(new Event('change')); setTimeout(()=>{dom.debtSub.value = d.subcategoryId||'';}, 50);
       } else {
         dom.debtName.value=''; dom.debtTotal.value=''; dom.debtMonthly.value='';
-        dom.debtStartDate.value = new Date().toISOString().split('T')[0]; dom.debtCat.value=''; dom.debtSub.value='';
+        dom.debtStartDate.value = getLocalDateStr(); dom.debtCat.value=''; dom.debtSub.value='';
       }
       openModal(dom.debtModal);
     };
@@ -154,8 +154,7 @@
       }
       saveAll(); renderDebts(); renderHistory(); closeModal(dom.debtModal);
     };
-    dom.debtCancel.onclick = () => closeModal(dom.debtModal);
-    dom.debtModal.onclick = e => { if(e.target===dom.debtModal) closeModal(dom.debtModal); };
+    dom.debtCancel.onclick = () => closeModal(dom.debtModal); dom.debtModal.onclick = e => { if(e.target===dom.debtModal) closeModal(dom.debtModal); };
     dom.btnAddDebt.onclick = () => openDebtModal('add');
     const deleteDebt = id => { debts = debts.filter(d=>d.id!==id); saveAll(); renderDebts(); renderHistory(); };
 
@@ -165,7 +164,7 @@
       dom.paymentTitle.textContent = `Платёж: ${debt.name}`;
       dom.paymentInfo.textContent = `Остаток: ${fmtMoney(debt.remaining)}`;
       dom.paymentAmount.value = debt.remaining; dom.paymentAmount.max = debt.remaining;
-      dom.paymentDate.value = new Date().toISOString().split('T')[0];
+      dom.paymentDate.value = getLocalDateStr();
       dom.paymentSave.textContent = 'Внести платёж'; dom.paymentSave.className = 'btn btn-primary';
       openModal(dom.paymentModal);
     };
@@ -179,8 +178,7 @@
       expenses.push({id:genId(), name:`Платёж: ${debt.name}`, categoryId:debt.categoryId, subcategoryId:debt.subcategoryId, amount, date, recurring:false, type:'debt_payment', isAuto:false, isArchived:false});
       saveAll(); renderDebts(); renderHistory(); closeModal(dom.paymentModal);
     };
-    dom.paymentCancel.onclick = () => closeModal(dom.paymentModal);
-    dom.paymentModal.onclick = e => { if(e.target===dom.paymentModal) closeModal(dom.paymentModal); };
+    dom.paymentCancel.onclick = () => closeModal(dom.paymentModal); dom.paymentModal.onclick = e => { if(e.target===dom.paymentModal) closeModal(dom.paymentModal); };
 
     const renderHistory = () => {
       dom.historyList.innerHTML = '';
@@ -214,7 +212,7 @@
         dom.expRecurring.checked = !!e.recurring; dom.expCat.value = e.categoryId||'';
         dom.expCat.dispatchEvent(new Event('change')); setTimeout(()=>{dom.expSub.value = e.subcategoryId||'';}, 50);
       } else {
-        dom.expName.value=''; dom.expAmount.value=''; dom.expDate.value = new Date().toISOString().split('T')[0];
+        dom.expName.value=''; dom.expAmount.value=''; dom.expDate.value = getLocalDateStr();
         dom.expRecurring.checked=false; dom.expCat.value=''; dom.expSub.value='';
       }
       openModal(dom.expModal);
@@ -226,8 +224,7 @@
       else { const e = expenses.find(x=>x.id===expState.id); if(e){e.name=name; e.amount=amount; e.date=date; e.recurring=dom.expRecurring.checked; e.categoryId=dom.expCat.value||null; e.subcategoryId=dom.expSub.value||null;} }
       saveAll(); renderHistory(); closeModal(dom.expModal);
     };
-    dom.expCancel.onclick = () => closeModal(dom.expModal);
-    dom.expModal.onclick = e => { if(e.target===dom.expModal) closeModal(dom.expModal); };
+    dom.expCancel.onclick = () => closeModal(dom.expModal); dom.expModal.onclick = e => { if(e.target===dom.expModal) closeModal(dom.expModal); };
     dom.btnOpenExp.onclick = () => openExpModal('add');
     dom.toggleCatArch.onclick = () => { showArchive.cat=!showArchive.cat; dom.toggleCatArch.textContent=showArchive.cat?'Скрыть архив':'Показать архив'; renderCategories(); };
     dom.toggleDebtArch.onclick = () => { showArchive.debt=!showArchive.debt; dom.toggleDebtArch.textContent=showArchive.debt?'Скрыть архив':'Показать архив'; renderDebts(); };
