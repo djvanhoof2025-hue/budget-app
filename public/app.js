@@ -5,12 +5,28 @@
     let state = { year: new Date().getFullYear(), month: new Date().getMonth(), view: 'quarter', editing: null };
     let tempIncomes = [];
 
-    // 🔧 СТРОГО ЛОКАЛЬНАЯ ДАТА (YYYY-MM-DD без UTC сдвига)
-    const getLocalDateStr = (d = new Date()) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+    // ---------- ЛОКАЛЬНЫЕ РАБОТЫ С ДАТАМИ (без UTC) ----------
+    const toLocalDate = (year, month, day) => {
+      // month 0-11, day 1-31
+      const y = year, m = String(month + 1).padStart(2, '0'), d = String(day).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const parseLocalDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length !== 3) return null;
+      return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+    };
+    const getTodayLocalStr = () => {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const getLocalMonthYear = (dateStr) => {
+      const p = parseLocalDate(dateStr);
+      return p ? { year: p.year, month: p.month } : null;
     };
 
     const dom = {
@@ -40,26 +56,13 @@
     const loadMonth = (y, m) => safeParse(getStorageKey(y, m), {});
     const saveMonth = (y, m, data) => localStorage.setItem(getStorageKey(y, m), JSON.stringify(data));
 
-    const normalizeDate = (val) => val ? String(val).trim().substring(0, 10) : '';
-
-    ['month','quarter','half','year'].forEach((v, i) => {
-      const btn = document.createElement('button');
-      btn.className = `view-btn ${i === 1 ? 'active' : ''}`;
-      btn.textContent = ['1М','Квартал','Полгода','Год'][i];
-      btn.dataset.view = v;
-      btn.onclick = () => { dom.switcher.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); state.view = v; render(); };
-      dom.switcher.appendChild(btn);
-    });
-
     const getIncomesForDate = (dateStr) => {
       try {
         const raw = localStorage.getItem('budget_incomes');
         const all = raw ? JSON.parse(raw) : [];
         return all.filter(i => {
-          const type = String(i.type || '').trim().toLowerCase();
           const isArchived = Boolean(Number(i.isArchived) || 0);
-          const itemDate = normalizeDate(i.date);
-          return itemDate === dateStr && !isArchived;
+          return i.date === dateStr && !isArchived;
         });
       } catch (e) { return []; }
     };
@@ -76,9 +79,9 @@
     };
 
     const getDayMarkers = (y, m, d) => {
-      const dateStr = normalizeDate(`${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+      const dateStr = toLocalDate(y, m, d);
       const expenses = safeParse('budget_expenses', []);
-      const expTotal = expenses.filter(e => normalizeDate(e.date) === dateStr && !e.isArchived && e.type !== 'debt_payment').reduce((s,e) => s + (Number(e.amount)||0), 0);
+      const expTotal = expenses.filter(e => e.date === dateStr && !e.isArchived && e.type !== 'debt_payment').reduce((s,e) => s + (Number(e.amount)||0), 0);
       return expTotal > 0 ? [{ type: 'exp', amount: expTotal }] : [];
     };
 
@@ -115,7 +118,7 @@
         for (let d = 1; d <= daysInMonth; d++) {
           const key = String(d);
           const info = data[key] || { coef: 0, comment: '', sick: false, off: false, event: false, eventLocation: '' };
-          const dateStr = normalizeDate(`${curY}-${String(curM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+          const dateStr = toLocalDate(curY, curM, d);
           const dayIncome = calcDayTotal(info, dateStr, curY, curM);
           monthTotal += dayIncome;
           
@@ -187,7 +190,7 @@
 
     const openModal = (y, m, d, info) => {
       state.editing = { y, m, d };
-      const dateStr = normalizeDate(`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+      const dateStr = toLocalDate(y, m, d);
       dom.mTitle.textContent = `${d} ${MONTHS[m]} ${y}`;
       dom.mCoef.value = info.coef || ''; dom.mComment.value = info.comment || '';
       dom.mSick.checked = !!info.sick; dom.mOff.checked = !!info.off; dom.mEvent.checked = !!info.event;
@@ -217,7 +220,7 @@
     const saveDay = () => {
       if (!state.editing) return;
       const { y, m, d } = state.editing;
-      const dateStr = normalizeDate(`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+      const dateStr = toLocalDate(y, m, d);
       const data = loadMonth(y, m);
       data[String(d)] = {
         coef: parseFloat(String(dom.mCoef.value).replace(',', '.')) || 0,
@@ -227,7 +230,7 @@
       saveMonth(y, m, data);
 
       const allIncomes = safeParse('budget_incomes', []);
-      const filtered = allIncomes.filter(i => normalizeDate(i.date) !== dateStr);
+      const filtered = allIncomes.filter(i => i.date !== dateStr);
       if (dom.mEvent.checked && dom.mDjPrice.value) {
         filtered.push({ id: genId(), date: dateStr, type: 'dj', categoryId: null, amount: parseFloat(dom.mDjPrice.value)||0, description: 'DJ сет', location: dom.mLocation.value.trim(), isArchived: false });
       }

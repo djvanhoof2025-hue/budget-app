@@ -5,7 +5,19 @@
     let catState={mode:'add',id:null}, subcatState={mode:'add',id:null,parentId:null}, debtState={mode:'add',id:null}, paymentState={mode:'pay',debtId:null}, expState={mode:'add',id:null};
     let showArchive={cat:false,debt:false,exp:false};
 
-    const getLocalDateStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const getTodayLocalStr = () => {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const parseLocalDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length !== 3) return null;
+      return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+    };
 
     const dom={
       catList:document.getElementById('categories-list'),debtList:document.getElementById('debts-list'),historyList:document.getElementById('expenses-history'),
@@ -29,7 +41,7 @@
       if(window.refreshCalendar) window.refreshCalendar();
       if(window.refreshStats) window.refreshStats();
     };
-    const fmtDate = d => d ? new Date(d).toLocaleDateString('ru') : '—';
+    const fmtDate = d => d ? (() => { const p = parseLocalDate(d); return p ? `${p.day}.${p.month+1}.${p.year}` : d; })() : '—';
     const fmtMoney = n => (n || 0).toLocaleString('ru') + ' ₽';
     const openModal = el => el.classList.add('visible');
     const closeModal = el => el.classList.remove('visible');
@@ -138,7 +150,7 @@
         dom.debtCat.dispatchEvent(new Event('change')); setTimeout(()=>{dom.debtSub.value = d.subcategoryId||'';}, 50);
       } else {
         dom.debtName.value=''; dom.debtTotal.value=''; dom.debtMonthly.value='';
-        dom.debtStartDate.value = getLocalDateStr(); dom.debtCat.value=''; dom.debtSub.value='';
+        dom.debtStartDate.value = getTodayLocalStr(); dom.debtCat.value=''; dom.debtSub.value='';
       }
       openModal(dom.debtModal);
     };
@@ -164,7 +176,7 @@
       dom.paymentTitle.textContent = `Платёж: ${debt.name}`;
       dom.paymentInfo.textContent = `Остаток: ${fmtMoney(debt.remaining)}`;
       dom.paymentAmount.value = debt.remaining; dom.paymentAmount.max = debt.remaining;
-      dom.paymentDate.value = getLocalDateStr();
+      dom.paymentDate.value = getTodayLocalStr();
       dom.paymentSave.textContent = 'Внести платёж'; dom.paymentSave.className = 'btn btn-primary';
       openModal(dom.paymentModal);
     };
@@ -182,7 +194,7 @@
 
     const renderHistory = () => {
       dom.historyList.innerHTML = '';
-      const list = expenses.filter(e => showArchive.exp ? true : !e.isArchived).sort((a,b) => new Date(b.date) - new Date(a.date));
+      const list = expenses.filter(e => showArchive.exp ? true : !e.isArchived).sort((a,b) => (a.date < b.date ? 1 : -1));
       if(!list.length) { dom.historyList.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:12px;">История пуста</p>'; return; }
       list.slice(0, 60).forEach(exp => {
         const el = document.createElement('div'); el.className = 'expense-row';
@@ -212,7 +224,7 @@
         dom.expRecurring.checked = !!e.recurring; dom.expCat.value = e.categoryId||'';
         dom.expCat.dispatchEvent(new Event('change')); setTimeout(()=>{dom.expSub.value = e.subcategoryId||'';}, 50);
       } else {
-        dom.expName.value=''; dom.expAmount.value=''; dom.expDate.value = getLocalDateStr();
+        dom.expName.value=''; dom.expAmount.value=''; dom.expDate.value = getTodayLocalStr();
         dom.expRecurring.checked=false; dom.expCat.value=''; dom.expSub.value='';
       }
       openModal(dom.expModal);

@@ -12,6 +12,12 @@
 
     const safeParse = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) || f; } catch { return f; } };
     const fmtMoney = n => (n || 0).toLocaleString('ru') + ' ₽';
+    const parseLocalDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length !== 3) return null;
+      return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+    };
     const now = new Date();
     MONTHS.forEach((m, i) => { const opt = document.createElement('option'); opt.value = i; opt.textContent = m; dom.monthSel.appendChild(opt); });
     dom.monthSel.value = now.getMonth();
@@ -49,16 +55,24 @@
       
       const salaryCash = advanceCurr + remainderPrev;
 
-      // Прочие доходы
+      // Прочие доходы (локальная фильтрация по дате)
       const allIncomes = safeParse('budget_incomes', []);
-      const monthIncomes = allIncomes.filter(i => { if (i.isArchived) return false; const d = new Date(i.date); return d.getFullYear() === selYear && d.getMonth() === selMonth; });
+      const monthIncomes = allIncomes.filter(i => {
+        if (i.isArchived) return false;
+        const parsed = parseLocalDate(i.date);
+        return parsed && parsed.year === selYear && parsed.month === selMonth;
+      });
       const extraIncome = monthIncomes.reduce((s, i) => s + (Number(i.amount) || 0), 0);
       
       const totalIncome = salaryCash + extraIncome;
 
-      // Расходы
+      // Расходы (локальная фильтрация)
       const allExp = safeParse('budget_expenses', []);
-      const monthExp = allExp.filter(e => { if (e.isArchived) return false; const d = new Date(e.date); return d.getFullYear() === selYear && d.getMonth() === selMonth; });
+      const monthExp = allExp.filter(e => {
+        if (e.isArchived) return false;
+        const parsed = parseLocalDate(e.date);
+        return parsed && parsed.year === selYear && parsed.month === selMonth;
+      });
       const totalExpense = monthExp.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const balance = totalIncome - totalExpense; const overspend = balance < 0 ? Math.abs(balance) : 0;
 

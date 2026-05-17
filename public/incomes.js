@@ -6,7 +6,20 @@
     let catState = { mode: 'add', id: null }, incomeState = { mode: 'add', id: null };
     let showArchive = { cat: false, income: false };
 
-    const getLocalDateStr = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // Локальная дата без UTC
+    const getTodayLocalStr = () => {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const parseLocalDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length !== 3) return null;
+      return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+    };
 
     const dom = {
       catList: document.getElementById('inc-categories-list'), historyList: document.getElementById('incomes-history'),
@@ -26,7 +39,7 @@
       if (window.refreshCalendar) window.refreshCalendar();
       if (window.refreshStats) window.refreshStats();
     };
-    const fmtDate = d => d ? new Date(d).toLocaleDateString('ru') : '—';
+    const fmtDate = d => d ? (() => { const p = parseLocalDate(d); return p ? `${p.day}.${p.month+1}.${p.year}` : d; })() : '—';
     const fmtMoney = n => (n || 0).toLocaleString('ru') + ' ₽';
     const openModal = el => el.classList.add('visible');
     const closeModal = el => el.classList.remove('visible');
@@ -81,9 +94,11 @@
     const renderHistory = () => {
       loadData(); dom.historyList.innerHTML = '';
       const selM = parseInt(dom.monthSel.value); const selY = parseInt(dom.yearSel.value);
+      // Фильтрация по локальной дате: сравниваем год и месяц из строки
       const otherIncomes = incomes.filter(i => {
         if (!showArchive.income && i.isArchived) return false;
-        const d = new Date(i.date); return d.getFullYear() === selY && d.getMonth() === selM;
+        const parsed = parseLocalDate(i.date);
+        return parsed && parsed.year === selY && parsed.month === selM;
       });
       const otherTotal = otherIncomes.reduce((s,i) => s + i.amount, 0);
       const summary = document.createElement('div');
@@ -92,7 +107,7 @@
       dom.historyList.appendChild(summary);
 
       if (!otherIncomes.length) { dom.historyList.innerHTML += '<p style="color:var(--text-muted);text-align:center;padding:12px;">Нет доходов за выбранный месяц</p>'; return; }
-      otherIncomes.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(inc => {
+      otherIncomes.sort((a,b) => (a.date < b.date ? 1 : -1)).forEach(inc => {
         const el = document.createElement('div'); el.className = 'income-row';
         if (inc.isArchived) el.style.opacity = '0.6';
         const cat = categories.find(c => c.id === inc.categoryId);
@@ -123,7 +138,7 @@
         dom.incomeAmount.value = i.amount; dom.incomeDate.value = i.date; dom.incomeLoc.value = i.location || '';
       } else {
         dom.incomeType.value = 'extra'; dom.incomeDesc.value = ''; dom.incomeCat.value = '';
-        dom.incomeAmount.value = ''; dom.incomeDate.value = getLocalDateStr(); dom.incomeLoc.value = '';
+        dom.incomeAmount.value = ''; dom.incomeDate.value = getTodayLocalStr(); dom.incomeLoc.value = '';
       }
       dom.incomeDjFields.classList.toggle('hidden', dom.incomeType.value !== 'dj');
       openModal(dom.incomeModal);
